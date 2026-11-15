@@ -13,14 +13,10 @@ async function hmac(secret, value) {
   return new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(value)));
 }
 export async function passwordMatches(password, stored) {
-  // Stored format: pbkdf2$iterations$salt_base64url$hash_base64url
-  const [scheme, count, saltText, hashText] = (stored || "").split("$");
-  if (scheme !== "pbkdf2" || !count || !saltText || !hashText) return false;
-  const material = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({name:"PBKDF2",salt:fromB64url(saltText),iterations:Number(count),hash:"SHA-256"},material,256);
-  const actual = new Uint8Array(bits), expected = fromB64url(hashText);
-  if (actual.length !== expected.length) return false;
-  let diff = 0; for (let i=0;i<actual.length;i++) diff |= actual[i] ^ expected[i];
+  if (!stored || password.length > 200) return false;
+  const a = enc.encode(password), b = enc.encode(stored);
+  if (a.length !== b.length) return false;
+  let diff = 0; for (let i=0;i<a.length;i++) diff |= a[i] ^ b[i];
   return diff === 0;
 }
 export async function makeSession(secret) {
